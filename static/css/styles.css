@@ -1781,7 +1781,7 @@ table thead th {
   border-color: var(--bs-table-border-color);
   max-height: 500px; /* 10개 항목의 높이에 맞게 조정 */
   overflow-y: auto;
-  background-color: rgba(255, 255, 255, 0.5);  /* 흰색 배경을 70% 불투명도로 설정 */
+  background-color: rgba(255, 255, 255, 0.7);  /* 흰색 배경을 70% 불투명도로 설정 */
 }
 .table > :not(caption) > * > * {
   padding: 0.5rem 0.5rem;
@@ -3858,6 +3858,7 @@ textarea.form-control-lg {
 .navbar > .container-xl,
 .navbar > .container-xxl {
   display: flex;
+  padding-top: 5%;
   flex-wrap: inherit;
   align-items: center;
   justify-content: space-between;
@@ -7192,6 +7193,7 @@ textarea.form-control-lg {
 
 .d-flex {
   display: flex !important;
+
 }
 
 .d-inline-flex {
@@ -8272,7 +8274,8 @@ textarea.form-control-lg {
 
 .text-white-50 {
   --bs-text-opacity: 1;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+      font-weight: bold;
 }
 
 .text-reset {
@@ -11014,7 +11017,7 @@ body {
 
 #mainNav {
   min-height: 3.5rem;
-  background-color: #000000;
+  background-color: #fff;
 }
 #mainNav .navbar-toggler {
   font-size: 80%;
@@ -11049,12 +11052,14 @@ body {
   }
   #mainNav .navbar-brand {
     padding: 0.5rem 0;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.9);
   }
   #mainNav .nav-link {
     transition: none;
     padding: 2rem 1.5rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.9);
+    font-size: 18px;      /* 원하는 크기로 조정하세요 */
+    font-weight: bold;    /* 글자를 굵게 만듭니다 */
   }
   #mainNav .nav-link:hover {
     color: rgba(255, 255, 255, 0.75);
@@ -11176,8 +11181,17 @@ body {
 }
 
 .projects-section {
-  padding: 10rem 0;
+    padding: 0%;
+    display: flex;
+    justify-content: center;  /* 가로 중앙 배치 */
+    align-items: center;      /* 세로 중앙 배치 */
 }
+
+.website {
+    width: 100%;
+    height: 70vh;  /* 예: 뷰포트의 70% 높이로 설정 */
+}
+
 .projects-section .featured-text {
   padding: 2rem;
 }

@@ -15,7 +15,7 @@ SERVICE_KEY = "3jkDYzA2uD6s50OH4zqE/NRd7uXuypkyG0gG7Rq550Dnn4nQYBcUpRKVMELmOpA3v
 AIRPORT_CODES = [
     {"code": "GMP", "name": "김포"},
     {"code": "CJU", "name": "제주"},
-    {"code": "PUS", "name": "부산"},
+    {"code": "PUS", "name": "김해"},
     {"code": "MWX", "name": "무안"},
     {"code": "YNY", "name": "양양"},
     {"code": "CJJ", "name": "청주"},
@@ -43,17 +43,28 @@ AIRLINE_LOGOS = {
     'RS': 'rs.gif',
     'TW': 'tw.gif',
     'YO': 'yo.png',
-    'ZE': 'ze.png'
+    'ZE': 'ze.png',
+    'MU': '중국동방항공.gif',
+    'JL': '일본항공.gif',
+    'NH': '전일본공수.gif',
+    'CA': '중국국제항공.gif',
+    'CZ': '중국남방항공.gif',
+    'BR': '에바항공(장영항공).gif',
+    'NH': '전일본공수.gif',
+    'FM': '상해항공.gif',
+    'IT': '타이거에어 타이완.gif',
+    '9C': '춘추항공.gif',
+    'HO': '중국길상항공(준야오항공).jpg'
 }
 
 # IATA 코드를 ICAO 코드로 변환하는 함수
 def iata_to_icao(iata_code):
     mapping = {
         'KE': 'KAL',
-        'OZ': 'OZ',
+        'OZ': 'AAR',
         '7C': 'JJA',
         'LJ': 'JNA',
-        'BX': 'BX',
+        'BX': 'ABL',
         'ZE': 'ESR',
         'KJ': 'AIH',
         'RS': 'ASV',
@@ -61,23 +72,27 @@ def iata_to_icao(iata_code):
         'TW': 'TWB',
         'YP': 'APZ',
         'RF': 'EOK',
-        '4H': 'HGG'
+        '4H': 'HGG',
     }
     return mapping.get(iata_code, iata_code)  # If not found, return the original IATA code
+
+
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     selected_airport = "USN"
-    show_all = request.args.get('show_all', 'false')  # 새로운 파라미터 추가
+    flight_type = request.form.get('flight_type') or request.args.get('flight_type', 'D')
+    show_all = request.args.get('show_all', 'false')
 
     if request.method == 'POST':
         selected_airport = request.form.get('airport_code')
+        print(f"Selected Airport: {selected_airport}")
     elif 'airport_code' in request.args:
         selected_airport = request.args.get('airport_code')
 
     # 항상 최신 정보를 가져오기 위해 API를 호출
-    departures, arrivals = fetch_flight_info(selected_airport)
+    departures, arrivals = fetch_flight_info(selected_airport, flight_type)
     mark_flights_in_air(departures, arrivals, selected_airport)
 
     if show_all == 'false':
@@ -89,11 +104,8 @@ def index():
     # 현재 시간을 가져옵니다.
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    return render_template('index.html', departures=departures, arrivals=arrivals, AIRPORT_CODES=AIRPORT_CODES,
+    return render_template('index.html', flight_type=flight_type, departures=departures, arrivals=arrivals, AIRPORT_CODES=AIRPORT_CODES,
                            selected_airport=selected_airport, AIRLINE_LOGOS=AIRLINE_LOGOS, selected_airport_name=selected_airport_name, current_time=current_time, show_all=show_all)
-
-
-
 
 
 @app.route('/get_airlines', methods=['GET'])
@@ -145,11 +157,11 @@ def get_airport_code_from_name(airport_name):
     }
     return airport_name_to_code.get(airport_name)
 
-def fetch_flight_info(airport_code="USN"):
+def fetch_flight_info(airport_code="USN", flight_type="D"):
     params = {
         "ServiceKey": SERVICE_KEY,
         "schAirCode": airport_code,
-        "schLineType": "D",
+        "schLineType": flight_type,  # 이 부분을 수정
         "numOfRows": 1000
     }
 
@@ -166,8 +178,11 @@ def fetch_flight_info(airport_code="USN"):
         flight_data = {
             "airFln": item.find("airFln").text if item.find("airFln") is not None else "",
             "airlineKorean": item.find("airlineKorean").text if item.find("airlineKorean") is not None else "",
+            "airlineEnglish": item.find("airlineEnglish").text if item.find("airlineEnglish") is not None else "",
             "boardingKor": item.find("boardingKor").text if item.find("boardingKor") is not None else "",
+            "boardingEng": item.find("boardingEng").text if item.find("boardingEng") is not None else "",
             "arrivedKor": item.find("arrivedKor").text if item.find("arrivedKor") is not None else "",
+            "arrivedEng": item.find("arrivedEng").text if item.find("arrivedEng") is not None else "",
             "std": item.find("std").text if item.find("std") is not None else "",
             "etd": item.find("etd").text if item.find("etd") is not None else "-",
             "rmkKor": item.find("rmkKor").text if item.find("rmkKor") is not None else "",
@@ -186,10 +201,22 @@ def fetch_flight_info(airport_code="USN"):
 def mark_flights_in_air(departures, arrivals, selected_airport):
     # Fetch flight info for all airports in advance
     all_flights_info = {airport["code"]: fetch_flight_info(airport["code"]) for airport in AIRPORT_CODES}
+
     # Handle arrivals
     for arrival in arrivals:
         origin_airport_name = arrival['boardingKor']
         origin_airport_code = get_airport_code_from_name(origin_airport_name)
+
+        if selected_airport == "국제선":  # 국제선을 선택했을 경우
+            arrival['airlineKorean'] = arrival.get('airlineEnglish', arrival['airlineKorean'])
+            arrival['boardingKor'] = arrival.get('boardingEng', arrival['boardingKor'])
+            arrival['arrivedKor'] = arrival.get('arrivedEng', arrival['arrivedKor'])
+
+        if origin_airport_code is None:
+            logging.warning(f"Unknown origin airport name for international flight: {origin_airport_name}")
+            arrival['flying2'] = origin_airport_name  # Set the airport name directly for international flights
+            continue  # Continue with the next iteration
+
         all_departures_for_origin = all_flights_info[origin_airport_code][0]  # Only need departure info
 
         matching_departure = next(
@@ -199,11 +226,8 @@ def mark_flights_in_air(departures, arrivals, selected_airport):
             arrival['flying'] = matching_departure['rmkKor']
             if arrival['flying'] == "출발":
                 arrival['flying2'] = "비행 중"
-                icao_code = iata_to_icao(arrival['airFln'][:2])  # IATA 코드를 ICAO 코드로 변환
-                arrival['flight_link'] = f"https://www.flightradar24.com/{icao_code}{arrival['airFln'][2:]}"  # 링크 수정
-
-
-
+                # icao_code = iata_to_icao(arrival['airFln'][:2])  # IATA 코드를 ICAO 코드로 변환
+                arrival['flight_link'] = f"https://www.flightradar24.com/simple?flight={arrival['airFln']}"
             else:
                 arrival['flying2'] = "출발 전"
         else:
@@ -221,6 +245,12 @@ def mark_flights_in_air(departures, arrivals, selected_airport):
     for departure in departures:
         destination_airport_name = departure['arrivedKor']
         destination_airport_code = get_airport_code_from_name(destination_airport_name)
+
+        if destination_airport_code is None:
+            logging.warning(f"Unknown destination airport name for international flight: {destination_airport_name}")
+            departure['flying2'] = destination_airport_name  # Set the airport name directly for international flights
+            continue  # Continue with the next iteration
+
         all_arrivals_for_destination = all_flights_info[destination_airport_code][1]  # Only need arrival info
 
         matching_arrival = next(
@@ -234,11 +264,9 @@ def mark_flights_in_air(departures, arrivals, selected_airport):
             departure['flying2'] = "비행 종료"
         elif departure['rmkKor'] == "출발" and departure['flying'] != "도착":
             departure['flying2'] = "비행 중"
-            icao_code = iata_to_icao(departure['airFln'][:2])  # IATA 코드를 ICAO 코드로 변환
-            departure['flight_link'] = f"https://www.flightradar24.com/{icao_code}{departure['airFln'][2:]}"  # 링크 수정
+            departure['flight_link'] = f"https://www.flightradar24.com/simple?flight={departure['airFln']}"  # 링크 추가
         elif departure['rmkKor'] != "출발":
             departure['flying2'] = "출발 전"
-
 
 if __name__ == '__main__':
     app.run(debug=True)
